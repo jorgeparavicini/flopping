@@ -4,7 +4,8 @@ from Player import *
 from floor import *
 from enemy import *
 from random import randint
-
+import RPi.GPIO as GPIO
+import time
 
 class Game:
 
@@ -16,9 +17,9 @@ class Game:
     def height(self):
         return self.screen.get_size()[1]
 
-    @property
-    def gravity(self):
-        return -500
+#    @property
+#    def gravity(self):
+#        return -500
 
     def __init__(self, screen_width: int = 800, screen_height: int = 600,
                  background_color: pygame.Color = pygame.Color(135, 206, 235, 255),
@@ -34,19 +35,36 @@ class Game:
         self.message_rect = None
         self.respawn_time = 2.0
         self.current_respawn_timer = 0.0
-        self.velocity_range = 80, 120
+        self.velocity_range = [150, 180]
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(4, GPIO.IN)
+        self.gravity = 0
+        self.level = 1
+        self.time_per_level = 5
+        self.game_time = 0
+        pygame.init()
+        self.timer_font = pygame.font.Font('freesansbold.ttf', 20)
 
     def start(self):
-        pygame.init()
+        
         while True:
             for event in pygame.event.get():
                 self.handle_event(event)
 
+            delta_time = pygame.time.Clock().tick(60) / 1000.0
+            self.game_time += delta_time
+            if self.game_time // self.time_per_level >= self.level:
+                self.next_level()
+
+            if GPIO.input(4):
+                self.gravity = 2000
+            else:
+                self.gravity = -2000
             self.lost = self.test_collision()
             self.draw()
 
             if not self.lost:
-                delta_time = pygame.time.Clock().tick(60) / 1000.0
+                
                 self.update_positions(delta_time)
                 self.generates_enemy(delta_time)
             else:
@@ -79,6 +97,7 @@ class Game:
         pygame.draw.rect(self.screen, pygame.Color(145, 198, 56, 255), pygame.Rect(60, 50, 50, 50))
         self.draw_obstacles()
         self.player.draw(self.screen)
+        self.draw_timer()
 
     def draw_background(self):
         self.screen.fill(self.background_color)
@@ -87,6 +106,12 @@ class Game:
     def draw_obstacles(self):
         for obstacle in self.obstacles:
             obstacle.draw(self.screen)
+
+    def draw_timer(self):
+        message = self.timer_font.render("Time: {:.2f} - Level: ".format(self.game_time) + str(self.level), True, pygame.Color('green'), pygame.Color('red'))
+        message_rect = message.get_rect()
+        message_rect.center = (self.width // 2, 20)
+        self.screen.blit(message, message_rect)
 
     def update_positions(self, delta_time):
         self.update_player_position(delta_time)
@@ -120,10 +145,17 @@ class Game:
             position_x = self.width + width
             position_y = randint(0, self.height-self.floor.floor_level-height)
             velocity = randint(self.velocity_range[0], self.velocity_range[1])
+            print(velocity)
             self.obstacles.append(Enemy(width, height, position_x, position_y, velocity))
             self.current_respawn_timer = 0
 
+    def next_level(self):
+        self.level += 1
+        self.respawn_time -= 0.15
+        self.velocity_range[0] += 50
+        self.velocity_range[1] += 50
+        print(self.velocity_range)
+
 
 game = Game()
-print(vars(game))
 game.start()

@@ -9,7 +9,7 @@ class Floor(Drawable):
 
     @property
     def floor_level(self):
-        return 200
+        return 50
 
 
 
