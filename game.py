@@ -28,7 +28,7 @@ class Game:
         self.background_color = background_color
         self.player = player
         self.floor = Floor()
-        self.obstacles = [Enemy(50, 50, 800, 350)]
+        self.obstacles = []
         self.obstacle_speed = 50
         self.lost = False
         self.message = None
@@ -41,7 +41,7 @@ class Game:
         self.gravity = 0
         self.level = 1
         self.time_per_level = 5
-        self.game_time = 0
+        self.game_time = 60
         pygame.init()
         self.timer_font = pygame.font.Font('freesansbold.ttf', 20)
 
@@ -135,12 +135,16 @@ class Game:
                 return True
         if self.player.position_y < 0:
             return True
+        elif self.player.position_y >= self.height - self.floor.floor_level:
+            return True
+        print(self.player.position_y)
+        print(self.height - self.floor.floor_level)
         return False
 
     def generates_enemy(self, delta_time):
         self.current_respawn_timer += delta_time
         if self.current_respawn_timer >= self.respawn_time:
-            height = 50
+            height = randint(40, 90)
             width = 50
             position_x = self.width + width
             position_y = randint(0, self.height-self.floor.floor_level-height)
@@ -151,10 +155,9 @@ class Game:
 
     def next_level(self):
         self.level += 1
-        self.respawn_time -= 0.15
+        self.respawn_time /= 1.25
         self.velocity_range[0] += 50
         self.velocity_range[1] += 50
-        print(self.velocity_range)
 
 
 game = Game()
